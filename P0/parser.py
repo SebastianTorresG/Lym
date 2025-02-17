@@ -34,7 +34,16 @@ CAN_MJ_TOTHE = rf"can(Move|Jump):{SPC}toThe:{SPC}{DIR}"
 INCONDICION = rf"({FACING}|{CANP_P}|{CAN_MJ_INDIR}|{CAN_MJ_TOTHE}){END}"
 NOT = rf"not:{SPC}{INCONDICION}{END}"
 FULLCOND = rf"({INCONDICION}|{NOT})"
-BLOCK = rf
+
+BLOCK = rf"\[({INSTR}{SPC})*\]"
+IF_ELSE = rf"if{SPC}:{SPC}{FULLCOND}{SPC}then{SPC}:{SPC}{BLOCK}{SPC}else{SPC}:{SPC}{BLOCK}"
+WHILE = rf"while{SPC}:{SPC}{FULLCOND}{SPC}do{SPC}:{SPC}{BLOCK}"
+REPEAT = rf"for{SPC}:{SPC}({NUM}+|{ID}){SPC}repeat{SPC}:{SPC}{BLOCK}"
+
+# Instrucciones incluyendo condicionales y bucles
+INSTR = rf"({GOTO}|{M_J}|{TURN}|{FACE}|{NOP}|{M_JTOTHE}|{M_JINDIR}|{P_POFTYPE}|{IF_ELSE}|{WHILE}|{REPEAT}){END}"
+
+
 
 def read_file(filename):
     with open(filename, "r") as file:
@@ -44,19 +53,13 @@ def read_file(filename):
 
 def tokenize(code):
     token_patterns = [
-        (r"\|[a-zA-Z0-9_ ]+\|", "VARIABLES"),
-        (r"proc [a-z][a-zA-Z0-9_]*:?(\s+[a-z][a-zA-Z0-9_]*(:\s+[a-z][a-zA-Z0-9_]*)*)?", "PROCEDURE_DEF"),
-        (r"[a-z][a-zA-Z0-9_]*:?(\s+[a-z][a-zA-Z0-9_]*)*.", "PROCEDURE_CALL"),
-        (r"[a-z][a-zA-Z0-9_]*\s*:=\s*[0-9]+.", "ASSIGNMENT"),
-        (r"if:\s+[a-zA-Z0-9_]+\s+then:\s+\[.*?\]\s+else:\s+\[.*?\]", "IF_STATEMENT"),
-        (r"while:\s+[a-zA-Z0-9_]+\s+do:\s+\[.*?\]", "WHILE_LOOP"),
-        (r"repeatTimes:\s+for:\s+[0-9]+\s+repeat:\s+\[.*?\]", "REPEAT_LOOP"),
-        (r"move:\s+[0-9]+\s+inDir:\s+#(north|south|west|east).", "MOVE"),
-        (r"put:\s+[0-9]+\s+ofType:\s+#(balloons|chips).", "PUT"),
-        (r"pick:\s+[0-9]+\s+ofType:\s+#(balloons|chips).", "PICK"),
-        (r"\[", "BLOCK_START"),
-        (r"\]", "BLOCK_END"),
-        (r"\.", "DOT")
+        (IF_ELSE, "IF_ELSE"),
+        (WHILE, "WHILE"),
+        (REPEAT, "REPEAT"),
+        (INSTR, "INSTRUCTION"),
+        (DECVAR, "DECLARATION"),
+        (ASSVAR, "ASSIGNMENT"),
+        (BLOCK, "BLOCK")
     ]
     
     tokens = []
@@ -67,30 +70,28 @@ def tokenize(code):
     
     return tokens
 
+
 def parse(tokens):
-    defined_procedures = set()
     defined_variables = set()
+    defined_procedures = set()
     
     for token, token_type in tokens:
-        if token_type == "VARIABLES":
-            variables = token.strip("|").split()
+        if token_type == "DECLARATION":
+            variables = token[0].strip("|").split()
             defined_variables.update(variables)
 
-        elif token_type == "PROCEDURE_DEF":
-            proc_name = token[1].split().rstrip(":")
-            defined_procedures.add(proc_name)
-
-        elif token_type == "PROCEDURE_CALL":
-            proc_name = token.split()[0].rstrip(":")
-            if proc_name not in defined_procedures:
-                return "NO"
-
         elif token_type == "ASSIGNMENT":
-            var_name = token.split(":=")[0].strip()
+            var_name = token[0].split(":=")[0].strip()
             if var_name not in defined_variables:
+                return "NO"  # Se asignó a una variable no declarada
+
+        elif token_type == "IF_ELSE" or token_type == "WHILE" or token_type == "REPEAT":
+            # Verificamos que la condición sea válida
+            if not re.match(FULLCOND, token):
                 return "NO"
 
     return "YES"
+
 
 def check_syntax(filename):
     code = read_file(filename)
