@@ -73,24 +73,32 @@ def tokenize(code):
 
 def parse(tokens):
     defined_variables = set()
-    defined_procedures = set()
-    
+    defined_procedures = set() 
+
     for token, token_type in tokens:
+        # Almacenar las variables declaradas
         if token_type == "DECLARATION":
             variables = token[0].strip("|").split()
             defined_variables.update(variables)
 
+        # Almacenar los procedimientos declarados
+        elif token_type == "PROC_DECLARATION":
+            proc_name = token[0].split()[1].rstrip(":")  
+            defined_procedures.add(proc_name)
+
+        # Verificar asignaciones de variables
         elif token_type == "ASSIGNMENT":
             var_name = token[0].split(":=")[0].strip()
             if var_name not in defined_variables:
-                return "NO"  # Se asignó a una variable no declarada
-
-        elif token_type == "IF_ELSE" or token_type == "WHILE" or token_type == "REPEAT":
-            # Verificamos que la condición sea válida
-            if not re.match(FULLCOND, token):
                 return "NO"
 
+        # Verificar llamadas a procedimientos
+        elif token_type == "PROC_CALL":
+            proc_name = token[0].split()[0].rstrip(":") 
+            if proc_name not in defined_procedures:
+                return "NO"  
     return "YES"
+
 
 
 def check_syntax(filename):
