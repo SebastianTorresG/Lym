@@ -1,6 +1,41 @@
 import re
 file = "P0/codigo_entrada.txt"
 
+SPC = r"\s"
+POINT = r"\."
+END = rf"{SPC}{POINT}"
+NUM = r"[0-9]"  
+ALFMIN = r"[a-z]" 
+ALFMAY = r"[A-Z]"
+ID = rf"{ALFMIN}({ALFMIN}|{ALFMAY}|{NUM})*"
+DECVAR = rf"({ID}{SPC})*{ID}"
+ASSVAR = rf"{ID}{SPC}:=({SPC}({NUM}|{ID}))"
+DIR90 = r"#left|#right|#around"
+DIR = r"#front|#back|#left|#right"
+COMPAS = r"#north|#south|#west|#east"
+CONSTANT = r"#balloons|#chips" 
+
+GOTO = rf"goto:{SPC}{ID}{SPC}with:{SPC}{ID}"
+M_J = rf"(move|jump):{SPC}({NUM}|{ID})"
+TURN = rf"turn{SPC}:{SPC}{DIR90}"
+FACE = rf"face{SPC}:{SPC}{COMPAS}"
+OFTYPE = rf"{SPC}ofType:{SPC}*{CONSTANT}"
+NOP = r"nop"
+M_JTOTHE = rf"{M_J}{SPC}toThe:{SPC}{DIR}"
+M_JINDIR = rf"{M_J}{SPC}inDir:{SPC}{COMPAS}"
+P_POFTYPE = rf"(put|pick):{SPC}({NUM}|{ID}){OFTYPE}"
+
+INSTR = rf"({GOTO}|{M_J}|{TURN}|{FACE}|{NOP}|{M_JTOTHE}|{M_JINDIR}|{P_POFTYPE}){END}"
+
+FACING = rf"facing:{SPC}{COMPAS}"
+CANP_P = rf"can(Put|Pick):{SPC}{OFTYPE}"
+CAN_MJ_INDIR = rf"can(Move|Jump):{SPC}inDir:{SPC}{COMPAS}"
+CAN_MJ_TOTHE = rf"can(Move|Jump):{SPC}toThe:{SPC}{DIR}"
+INCONDICION = rf"({FACING}|{CANP_P}|{CAN_MJ_INDIR}|{CAN_MJ_TOTHE}){END}"
+NOT = rf"not:{SPC}{INCONDICION}{END}"
+FULLCOND = rf"({INCONDICION}|{NOT})"
+BLOCK = rf
+
 def read_file(filename):
     with open(filename, "r") as file:
         return file.read().strip()
@@ -42,7 +77,7 @@ def parse(tokens):
             defined_variables.update(variables)
 
         elif token_type == "PROCEDURE_DEF":
-            proc_name = token.split()[1].rstrip(":")
+            proc_name = token[1].split().rstrip(":")
             defined_procedures.add(proc_name)
 
         elif token_type == "PROCEDURE_CALL":
