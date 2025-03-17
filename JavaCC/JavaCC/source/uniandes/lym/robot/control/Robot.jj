@@ -20,443 +20,326 @@ options
 }
    
 
+// ====================================================
+// ======== Robot.jj - Parser JavaCC Proyecto 1 =======
+// ====================================================
+
 PARSER_BEGIN(Robot)
 
 package uniandes.lym.robot.control;
 
 import uniandes.lym.robot.kernel.*;
-import uniandes.lym.robot.view.C2onsole;
- 
 import java.awt.Point;
-import java.io.*;
-import java.util.Vector;
-import java.util.LinkedList;
 import java.util.*;
-import java.util.Arrays;
 
 @SuppressWarnings("serial")
-public class Robot 
-{
-  	
+public class Robot {
+    public static final int NORTH = 0;
+    public static final int SOUTH = 1;
+    public static final int EAST = 2;
+    public static final int WEST = 3;
 
-	public static final int NORTH = 0;
-	public static final int SOUTH = 1;
-	public static final int EAST = 2;
-	public static final int WEST = 3;
-	
-	private RobotWorldDec world;
-	
-	
-	void setWorld(RobotWorld w) {
-		world = (RobotWorldDec) w;	
-	}
+    private RobotWorldDec world;
 
-	String salida=new String();
-	Map<String, ArrayList<String>> Parametros = new HashMap<>();
-	
-	//Guarda todas las variables creadas
-	Map<String, Integer> Variables = new HashMap<>();
+    void setWorld(RobotWorld w) {
+        world = (RobotWorldDec) w;
+    }
 
-	//Guarda todas los proceduress creadas por el usuario
+    Map<String, ArrayList<String>> Parametros = new HashMap<>();
+    Map<String, Integer> Variables = new HashMap<>();
     Map<String, List<Instrucciones>> procedures = new HashMap<>();
-    
-	// Guardar el codigo que se va a ejecutar
-    ArrayList <Instrucciones> code = new ArrayList <Instrucciones> () ;
+    ArrayList<Instrucciones> code = new ArrayList<>();
 
-
-    //revisar que la variable este bien definida
     public int revisarVar(String variable) {
-	  int var;
-	  if (Variables.containsKey(variable)) {
-	    var = Variables.get(variable);
-	    }
-	    
-	  else { 
-		  try {
-		    var = Integer.parseInt(variable);
-		    }
-		  catch (NumberFormatException ee) 
-			{throw new Error("\nThe value: "+variable+" needs to be a Inetger");}
-	  }
-	  return var;
-	}
-
-//----------------------------------------------------------------------------------------
-
-
-private class Instrucciones {
-
-String tipo;
-
-String argx = "0";
-String argy = "0";
-String dir = "";
-
-public Instrucciones(String tipo) {
-  this.tipo = tipo;
-  }
-  
-public Instrucciones(String tipo, String argx) {
-  this.tipo = tipo;
-  this.argx = argx;
-  }
-
-public Instrucciones(String tipo, String argx, String dir) {
-  this.tipo = tipo;
-  this.argx = argx;
-  this.dir = dir.toLowerCase();
-  }
-  
-
-public Instrucciones(String tipo, String argx, String argy, String dir) {
-  this.tipo = tipo;
-  this.argx = argx;
-  this.argy = argy;
-  this.dir = dir;
-  }
-
-public String getTipo() {
-	return tipo;
-  }
-
-public void setAtributos(String viejo, String nuevo) {
-	if (argx.equals(viejo)) { this.argx = nuevo;} 
-	else if (argy.equals(viejo)) { this.argy = nuevo;} 
-	else if (dir.equals(viejo)) { this.dir = nuevo;} 
-  }
-  
-public void execute() throws Error {
-  int x = revisarVar(argx);
-  int y = revisarVar(argy);
-  int facing = world.getFacing();
-  int[] ind;
-  switch (tipo) {
-    
-  	case "jump":   world.setPostion(x, y) ; break;
-  	case "walk":   direction(); world.moveForward(x, false); if (argy.equals("-1")) {look(facing);} break;
-	case "leap":  direction(); world.moveForward(x, true);  if (argy.equals("-1")) {look(facing);} break;
-	case "turn":   direction() ; break;
-	case "turnto":   direction(); break;
-	case "drop":  world.putChips(x); break;
-	case "get":  world.pickChips(x); break;
-	case "grab":   world.grabBalloons(x); break;
-	case "letgo":    world.putBalloons(x); break;
-	case "=": Variables.put(dir, x); break;
-	case "while": ind = indices("while", "endwhile"); whiles(code.subList(ind[0], ind[1]+1)); break;
-	case "if": ind = indices("if", "endif"); ifs(code.subList(ind[0], ind[1]+1)); break;
-	case "repeat": ind = indices("repeat", "endrepeat"); repeats(code.subList(ind[0], ind[1]+1)); break;
-
-}
-}
-
-private void direction() throws Error {
-switch (dir) {
-
-	case "right": world.turnRight(); argy = "-1"; break;
-	case "left": world.turnRight(); world.turnRight(); world.turnRight(); argy = "-1"; break;
-	case "around":
-	case "back": world.turnRight(); world.turnRight(); argy = "-1"; break;
-	case "north": look(NORTH); break;
-	case "south": look(SOUTH); break;
-	case "west": look(WEST); break;
-	case "east": look(EAST); break;
-  }
-
-}
-
-private void look(int direccion) {
-	int facing = world.getFacing();
-
-	while (facing != direccion) {
-		world.turnRight();
-		facing = world.getFacing();
-	  }
-  }
-
-
-
-
-public boolean condicionales() {
-	int i = encontrar();
-	boolean resp = false;
-	switch (tipo) {
-		case "facing": int facing = world.getFacing(); if (facing == orientacion()) { resp = true;} else { resp = false;} break;
-		case "can": resp = can(code.get(i++).getTipo());  break;
-		case "not": resp = !code.get(i++).condicionales(); break;
-	  }
-	return resp;
-}
-
-private int orientacion() {
-	int resp = -1;
-	switch(dir) {
-	  	case "north": resp = NORTH; break;
-		case "south": resp = SOUTH; break;
-		case "west": resp = WEST; break;
-		case "east": resp = EAST; break;
-	  }
-	return resp;
-  }
-
-
-public void whiles(List<Instrucciones> lista) { 
-	int i = 0;
-	
-  	while (!lista.get(i).getTipo().equals("condicional")) { i++;}
-  	int j = i + 1;
-	while (lista.get(0).condicionales()) {
-		while (!lista.get(j).getTipo().equals("endwhile")) {
-		    lista.get(j).execute();
-		    j++;
-		  }
-		j = i+1;
-	  }
-	lista.subList(0, j+1).clear();
-  }
-
-public void ifs(List<Instrucciones> lista) {
-	int i = 0;
-	while (!lista.get(i).getTipo().equals("condicional")) { i++;}
-	if (lista.get(0).condicionales()) {
-	  while (!lista.get(i).getTipo().equals("else")) {
-		    lista.get(i).execute();
-		    i++;
-		  }
-	  while (!lista.get(i).getTipo().equals("endif")) { i++;}
-	}
-	else {
-		while (!lista.get(i).getTipo().equals("else")) { i++;}
-		while (!lista.get(i).getTipo().equals("endif")) {
-	    lista.get(i).execute();
-	    i++;
-	  }
-	  }
-	  lista.subList(0, i+1).clear();
-  }
-
-public void repeats(List<Instrucciones> lista) {
-	int i = 0;
-	for (int j = 0;j < revisarVar(argx); j++ ) { 
-	while (!lista.get(i).getTipo().equals("endrepeat")) {
-		    lista.get(i).execute();
-		    i++;
-		  } }
-		  lista.subList(0, i+1).clear();
-	}
-
-
- public int[] indices(String inicio, String finals) {
-    int [] resp = {0, 0};
-	while (code.get(resp[0]) == this) { resp[0] ++; }
-	int cont = 0;
-
-    for (resp[1] = resp[0] + 1; resp[1] < code.size(); resp[1]++) {
-        String j = code.get(resp[1]).getTipo();
-        if (j.equals(inicio)) {
-            cont++;
-        } else if (j.equals(finals)) {
-            if (cont == 0) {
-                break;
+        if (Variables.containsKey(variable)) {
+            return Variables.get(variable);
+        } else {
+            try {
+                return Integer.parseInt(variable);
+            } catch (NumberFormatException e) {
+                throw new Error("The value " + variable + " must be an Integer.");
             }
-            cont--;
         }
     }
-    return resp;
-	  
-   }
 
-   public int encontrar() {
-	int resp = 0;
-	while (code.get(resp) == this) { resp++; }
-	return resp; }
-  
-public boolean can(String t) {
-boolean resp = false;
-int x = revisarVar(argx);
-int y = revisarVar(argy);
-Point p = world.getPosition();
-switch(t) {
-	case "jump": resp = world.isBlocked(new Point(x, y)) ; break;
-  	case "walk":  resp = world.blockedInRange((int) p.getX(), (int) p.getY(), x, orientacion()); break;  
-	case "leap":  resp = world.blockedInRange((int) p.getX(), (int) p.getY(), x, orientacion()); break; 
-	case "turn":   resp = true ; break;
-	case "turnto":   resp = true; break;
-	case "drop":  resp = x <= world.getMyChips(); break;
-	case "get":  resp = world.chipExists() && x <= world.chipsToPick(); break;
-	case "grab":   resp = x <= world.countBalloons(); break;
-	case "letgo":    resp = x <= world.getMyBalloons(); break;
-  }
-  System.out.println(resp);
-return resp;
-  }
+    private class Instrucciones {
+        String tipo;
+        String argx = "0";
+        String argy = "0";
+        String dir = "";
 
+        public Instrucciones(String tipo) { this.tipo = tipo; }
+        public Instrucciones(String tipo, String argx) { this.tipo = tipo; this.argx = argx; }
+        public Instrucciones(String tipo, String argx, String dir) { this.tipo = tipo; this.argx = argx; this.dir = dir; }
+        public Instrucciones(String tipo, String argx, String argy, String dir) {
+            this.tipo = tipo; this.argx = argx; this.argy = argy; this.dir = dir;
+        }
+    }
 }
 
-
-	
-
-	
-}
 PARSER_END(Robot)
 
-SKIP:
-{
-	" "
-	|	"\r"
-	|	"\t"
-	| "\n"
-}
-
-TOKEN: /* Nombres de Comandos */
-{
-  		//DEFINICIONES
-			< DEFVAR: "defVar" >
-        | < DEFPROC: "defProc" >
-		// Comandos simples
-        | < JUMP: "jump">
-  		| < TURN: "turn" >
-  		| < GOTO: "goto" >
-  		| < NOP: "nop" >
-  		| < FACE: "face" >
-  		| < WITH: "with" >
-  		| < OFTYPE: "ofType" >
-  		| < TOTHE: "toThe" >
-  		| < INDIR: "inDir" >
-  		
-  		
-  		//Direcciones
-  		| < CARDINALDIR: "north" | "south" | "west" | "east" >
-        | < DIRECTION: "right" | "left"|"around" >
-        | < DIRECTIONCOMP: "right" | "left"|"front" | "back" >
-        // Estructuras
-  		| < IF: "if" >
-  		| < ELSE: "else" >
-  		| < WHILE: "while" >
-  		| < REPEAT: "repeat" >
-  		| < EQUALS: ":=">
-  		| < FOR: "for" >
-  		| < DO: "do" >
-  		| < THEN: "then" >
-		//Condiciones
-		| < FACING: "facing" >
-		| < CANPUT: "canPut" >
-		| < CANPICK: "canPick" >
-		| < CANMOVE: "canMove" >
-		| < CANJUMMP: "canJump" >
-		| < NOT: "not" >
-		
-  		
-  		//Comandos Viejos
-		| <MOV:  "Mov">
-		| 	<RIGHT: "RIGHT">
-		| 	<PUT: "Put">
-		| 	<PICK: "Pick">
-		|  < POP: "Pop" >
-		|  <GO: "GO" >
-        |  < HOP:  "HOP" >		
-
-}
-
-TOKEN:
-{
-			<BALLOONS:  "BALLOONS" >
-		|	<CHIPS:     "CHIPS"  >	
-
-}
-
-
+// =================== TOKENS =========================
 
 TOKEN :
 {
-			<NUM: (<DIGIT>)+ >
-		|  	<#DIGIT: ["0"-"9"] >
-		| < NAME: ( <LETTER> ( <LETTER > | < NUM > )* ) >
-        | < #LETTER: ["A"-"Z"] >
-        
+      < DEFVAR: "defVar" >
+    | < DEFPROC: "defProc" >
+    | < JUMP: "jump" >
+    | < MOVE: "move" >
+    | < TURN: "turn" >
+    | < FACE: "face" >
+    | < PUT: "put" >
+    | < PICK: "pick" >
+    | < GOTO: "goto" >
+    | < NOP: "nop" >
+    | < WITH: "with" >
+    | < OFTYPE: "ofType" >
+    | < TOTHE: "toThe" >
+    | < INDIR: "inDir" >
+    | < ASSIGN: ":=" >
+    | < IF: "if" >
+    | < THEN: "then" >
+    | < ELSE: "else" >
+    | < WHILE: "while" >
+    | < DO: "do" >
+    | < FOR: "for" >
+    | < REPEAT: "repeat" >
 }
 
+TOKEN :
+{
+      < ORIENTATION: "#" ( "north" | "south" | "east" | "west" ) >
+    | < DIRECTION: "#" ( "right" | "left" | "around" ) >
+    | < DIRECTIONCOMP: "#" ( "front" | "back" | "left" | "right" ) >
+}
+
+TOKEN :
+{
+      < TYPE: "#" ( "chips" | "balloons" ) >
+}
+
+TOKEN :
+{
+      < FACING: "facing" >
+    | < CANPUT: "canPut" >
+    | < CANPICK: "canPick" >
+    | < CANMOVE: "canMove" >
+    | < CANJUMP: "canJump" >
+    | < NOT: "not" >
+}
+
+TOKEN :
+{
+      < NUM: (<DIGIT>)+ >
+    | < ID: <LETTER> (<LETTER> | <DIGIT> | "_")* >
+    | < #DIGIT: ["0"-"9"] >
+    | < #LETTER: ["a"-"z", "A"-"Z"] >
+}
+
+TOKEN :
+{
+      < COMMENT: "#" (~["\n", "\r"])* >
+    | < NEWLINE: ("\r" | "\n" | "\r\n")+ >
+    | < SPACE: (" " | "\t")+ >
+}
+
+SKIP : { " " | "\t" | "\n" | "\r" }
+SPECIAL_TOKEN : { < COMMENT > }
+
+// ============= REGLAS DE PARSING ====================
+
+void Start() : {}
+{
+    (Instruction())* <EOF>
+}
+
+void Instruction() : {}
+{
+    JumpInstr() |
+    MoveInstr() |
+    TurnInstr() |
+    FaceInstr() |
+    PutInstr() |
+    PickInstr() |
+    GotoInstr() |
+    AssignInstr() |
+    NopInstr() |
+    IfInstr() |
+    WhileInstr() |
+    RepeatInstr() |
+    ProcedureDecl() |
+    ProcedureCall()
+}
+
+void JumpInstr() : { Token t1, t2; }
+{
+    <JUMP> t1=Param()
+    ( <TOTHE> t2=DirectionComponent() { code.add(new Instrucciones("jump", t1.image, "0", t2.image)); }
+    | <INDIR> t2=Orientation() { code.add(new Instrucciones("jump", t1.image, "0", t2.image)); } )
+    <DOT>
+}
+
+void MoveInstr() : { Token t1, t2; }
+{
+    <MOVE> t1=Param()
+    ( <TOTHE> t2=DirectionComponent() { code.add(new Instrucciones("walk", t1.image, "0", t2.image)); }
+    | <INDIR> t2=Orientation() { code.add(new Instrucciones("walk", t1.image, "0", t2.image)); }
+    | { code.add(new Instrucciones("walk", t1.image)); } )
+    <DOT>
+}
+
+void TurnInstr() : { Token dir; }
+{
+    <TURN> <COLON> dir=Direction() { code.add(new Instrucciones("turn", "0", dir.image)); } <DOT>
+}
+
+void FaceInstr() : { Token dir; }
+{
+    <FACE> <COLON> dir=Orientation() { code.add(new Instrucciones("turnto", "0", dir.image)); } <DOT>
+}
+
+void PutInstr() : { Token t1, t2; }
+{
+    <PUT> <COLON> t1=Param() <OFTYPE> t2=Type()
+    { String tipo = t2.image.equalsIgnoreCase("#chips") ? "drop" : "letgo";
+      code.add(new Instrucciones(tipo, t1.image)); } <DOT>
+}
+
+void PickInstr() : { Token t1, t2; }
+{
+    <PICK> <COLON> t1=Param() <OFTYPE> t2=Type()
+    { String tipo = t2.image.equalsIgnoreCase("#chips") ? "get" : "grab";
+      code.add(new Instrucciones(tipo, t1.image)); } <DOT>
+}
+
+void GotoInstr() : { Token t1, t2; }
+{
+    <GOTO> <COLON> t1=Param() <WITH> <COLON> t2=Param()
+    { code.add(new Instrucciones("jump", t1.image, t2.image, "")); } <DOT>
+}
+
+void AssignInstr() : { Token var, val; }
+{
+    var=<ID> <ASSIGN> val=Param()
+    { code.add(new Instrucciones("=", val.image, var.image)); } <DOT>
+}
+
+void NopInstr() : {}
+{
+    <NOP> <DOT> { code.add(new Instrucciones("nop")); }
+}
+
+void IfInstr() : {}
+{
+    <IF> Condition() { code.add(new Instrucciones("if")); }
+    <THEN> Block()
+    <ELSE> Block()
+    { code.add(new Instrucciones("endif")); }
+}
+
+void WhileInstr() : {}
+{
+    <WHILE> Condition() { code.add(new Instrucciones("while")); }
+    <DO> Block()
+    { code.add(new Instrucciones("endwhile")); }
+}
+
+void RepeatInstr() : { Token times; }
+{
+    <FOR> times=Param() { code.add(new Instrucciones("repeat", times.image)); }
+    <REPEAT> Block()
+    { code.add(new Instrucciones("endrepeat")); }
+
+}
+void ProcedureDecl() : { Token name; List<Instrucciones> oldCode = code; code = new ArrayList<>(); List<String> params = new ArrayList<>(); }
+{
+    <DEFPROC> name=<ID> (ProcedureParams(params))? Block()
+    { procedures.put(name.image, code); code = oldCode; Parametros.put(name.image, new ArrayList<>(params)); }
+}
+
+void ProcedureParams(List<String> params) : { Token p; }
+{
+    <PIPE>
+    ( p=<ID> { params.add(p.image); } )+
+    <PIPE>
+}
+
+void ProcedureCall() : { Token name; List<String> args = new ArrayList<>(); Token p; }
+{
+    name=<ID>
+    ( p=Param() { args.add(p.image); } )*
+    <DOT>
+    {
+        List<Instrucciones> cuerpo = procedures.get(name.image);
+        if (cuerpo != null) {
+            for (Instrucciones inst : cuerpo) {
+                Instrucciones copia = new Instrucciones(inst.tipo, inst.argx, inst.argy, inst.dir);
+                for (int i = 0; i < args.size(); i++) {
+                    if (Parametros.get(name.image).size() > i) {
+                        copia.setAtributos(Parametros.get(name.image).get(i), args.get(i));
+                    }
+                }
+                code.add(copia);
+            }
+        } else {
+            throw new Error("Procedure not defined: " + name.image);
+        }
+    }
+}
+
+void Block() : {}
+{
+    <LBRACK> (Instruction())* <RBRACK>
+}
+
+void Condition() : {}
+{
+    FacingCond() | CanPutCond() | CanPickCond() | CanMoveCond() | CanJumpCond() | NotCond()
+}
+
+void FacingCond() : { Token dir; }
+{
+    <FACING> <COLON> dir=Orientation()
+    { code.add(new Instrucciones("facing", "0", dir.image)); }
+}
+
+void CanPutCond() : { Token n, t; }
+{
+    <CANPUT> <COLON> n=Param() <OFTYPE> t=Type()
+    { code.add(new Instrucciones("can", n.image, "0", t.image)); }
+}
+
+void CanPickCond() : { Token n, t; }
+{
+    <CANPICK> <COLON> n=Param() <OFTYPE> t=Type()
+    { code.add(new Instrucciones("can", n.image, "0", t.image)); }
+}
+
+void CanMoveCond() : { Token n, d; }
+{
+    <CANMOVE> <COLON> n=Param() ( <INDIR> d=Orientation() | <TOTHE> d=DirectionComponent() )
+    { code.add(new Instrucciones("can", n.image, "0", d.image)); }
+}
+
+void CanJumpCond() : { Token n, d; }
+{
+    <CANJUMP> <COLON> n=Param() ( <INDIR> d=Orientation() | <TOTHE> d=DirectionComponent() )
+    { code.add(new Instrucciones("can", n.image, "0", d.image)); }
+}
+
+void NotCond() : {}
+{
+    <NOT> <COLON> Condition() { code.add(new Instrucciones("not")); }
+}
+
+Token Param() : { Token t; } { t=<NUM> | <ID> { return t; } }
+Token DirectionComponent() : { Token t; } { t=<DIRECTIONCOMP> { return t; } }
+Token Direction() : { Token t; } { t=<DIRECTION> { return t; } }
+Token Orientation() : { Token t; } { t=<ORIENTATION> { return t; } }
+Token Type() : { Token t; } { t=<TYPE> { return t; } }
 
 
-	//boolean command(uniandes.lym.robot.view.Console sistema) :
-	boolean command(Console sistema):
-	{	
-		
-		int x,y;
-		salida=new String();	
-	}
 
-	
-	{
-		(		  (
-		   <RIGHT> "(" ")" {world.turnRight();salida = "Command: Turnright";}
-		| 	<MOV>  "(" x=num() ")" {world.moveForward(x,false);salida = "Command: Moveforward ";}  
-		| 	<HOP>  "(" x=num() ")" {world.moveForward(x,true);salida = "Command:Jumpforward ";}
-		| 	<GO>  "(" x=num() "," y=num()")" {world.setPostion(x,y);salida = "Command:GO ";}  
-		|  <PUT> "("  put() ")"					  			
-		|  <PICK> "(" get()  ")"	
-	    |  < POP > "(" x=num() ")" {world.popBalloons(x); salida = "Comando:  Pop";}
-		) ";" 
-
-		{
-		    try {
-	    			 Thread.sleep(900);
-	    	    } catch (InterruptedException e) {
-	    			        System.err.format("IOException: %s%n", e);
-	    		    }
-	    			 
-			sistema.printOutput(salida);
-			return true;
-		})+
-
-    	| <EOF> {return false;} 
-	}
-
-	void put() :
-	{
-		int f=1;	
-	}
-	{
-		( <CHIPS>    "," f=num() {world.putChips(f); salida = "Command:  Put Chips"; })
-		|  	  ( <BALLOONS>   "," f=num() {world.putBalloons(f); salida = "Command:  Put Balloons";})	 
-
-	}
-
-	void get() :
-	{
-		int f=1;	
-	}
-	{
-		( <CHIPS>   "," f=num() {world.pickChips(f);salida = "Command:  Pick chips";})
-		|  	  ( <BALLOONS>   "," f=num() {world.grabBalloons(f);salida="Command:  Pick balloons";})	 
-
-	}
-
-	
-	
-
-	/**
-	 * Unsigned decimal number
-	 * @return the corresponding value of the string
-	 * @error  corresponding value is too large
-	 */
-
-	int num() throws Error:
-	{	
-		int total=1;
-	}
-	{
-		<NUM>
-		{
-			try 
-			{
-				total = Integer.parseInt(token.image);
-			} 
-			catch (NumberFormatException ee) 
-			{
-				throw new Error("Number out of bounds: "+token.image+" !!");
-			}
-			return total;
-		}
-	}
 
 	

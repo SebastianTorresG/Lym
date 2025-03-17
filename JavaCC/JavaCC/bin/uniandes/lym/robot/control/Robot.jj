@@ -20,153 +20,326 @@ options
 }
    
 
+// ====================================================
+// ======== Robot.jj - Parser JavaCC Proyecto 1 =======
+// ====================================================
+
 PARSER_BEGIN(Robot)
 
 package uniandes.lym.robot.control;
 
 import uniandes.lym.robot.kernel.*;
-import uniandes.lym.robot.view.Console;
- 
 import java.awt.Point;
-import java.io.*;
-import java.util.Vector;
-import java.util.LinkedList;
+import java.util.*;
 
 @SuppressWarnings("serial")
-public class Robot 
-{
+public class Robot {
+    public static final int NORTH = 0;
+    public static final int SOUTH = 1;
+    public static final int EAST = 2;
+    public static final int WEST = 3;
 
+    private RobotWorldDec world;
 
-	private RobotWorldDec world;
-	
-	
-	void setWorld(RobotWorld w) {
-		world = (RobotWorldDec) w;	
-	}
+    void setWorld(RobotWorld w) {
+        world = (RobotWorldDec) w;
+    }
 
-	String salida=new String();
+    Map<String, ArrayList<String>> Parametros = new HashMap<>();
+    Map<String, Integer> Variables = new HashMap<>();
+    Map<String, List<Instrucciones>> procedures = new HashMap<>();
+    ArrayList<Instrucciones> code = new ArrayList<>();
+
+    public int revisarVar(String variable) {
+        if (Variables.containsKey(variable)) {
+            return Variables.get(variable);
+        } else {
+            try {
+                return Integer.parseInt(variable);
+            } catch (NumberFormatException e) {
+                throw new Error("The value " + variable + " must be an Integer.");
+            }
+        }
+    }
+
+    private class Instrucciones {
+        String tipo;
+        String argx = "0";
+        String argy = "0";
+        String dir = "";
+
+        public Instrucciones(String tipo) { this.tipo = tipo; }
+        public Instrucciones(String tipo, String argx) { this.tipo = tipo; this.argx = argx; }
+        public Instrucciones(String tipo, String argx, String dir) { this.tipo = tipo; this.argx = argx; this.dir = dir; }
+        public Instrucciones(String tipo, String argx, String argy, String dir) {
+            this.tipo = tipo; this.argx = argx; this.argy = argy; this.dir = dir;
+        }
+    }
 }
+
 PARSER_END(Robot)
 
-SKIP:
-{
-	" "
-	|	"\r"
-	|	"\t"
-	| "\n"
-}
-
-TOKEN: /* Nombres de Comandos */
-{
-
-			<MOV:  "Mov">
-		| 	<RIGHT: "RIGHT">
-		| 	<PUT: "Put">
-		| 	<PICK: "Pick">
-		|  < POP: "Pop" >
-		|  <GO: "GO" >
-        |  < HOP:  "HOP" >		
-
-}
-
-TOKEN:
-{
-		<BALLOONS:  "BALLOONS" >
-		|	<CHIPS:     "CHIPS"  >	
-
-}
-
-
+// =================== TOKENS =========================
 
 TOKEN :
 {
-		<NUM: (<DIGIT>)+ >
-		|  	<#DIGIT: ["0"-"9"] >
-        
+      < DEFVAR: "defVar" >
+    | < DEFPROC: "defProc" >
+    | < JUMP: "jump" >
+    | < MOVE: "move" >
+    | < TURN: "turn" >
+    | < FACE: "face" >
+    | < PUT: "put" >
+    | < PICK: "pick" >
+    | < GOTO: "goto" >
+    | < NOP: "nop" >
+    | < WITH: "with" >
+    | < OFTYPE: "ofType" >
+    | < TOTHE: "toThe" >
+    | < INDIR: "inDir" >
+    | < ASSIGN: ":=" >
+    | < IF: "if" >
+    | < THEN: "then" >
+    | < ELSE: "else" >
+    | < WHILE: "while" >
+    | < DO: "do" >
+    | < FOR: "for" >
+    | < REPEAT: "repeat" >
 }
 
+TOKEN :
+{
+      < ORIENTATION: "#" ( "north" | "south" | "east" | "west" ) >
+    | < DIRECTION: "#" ( "right" | "left" | "around" ) >
+    | < DIRECTIONCOMP: "#" ( "front" | "back" | "left" | "right" ) >
+}
+
+TOKEN :
+{
+      < TYPE: "#" ( "chips" | "balloons" ) >
+}
+
+TOKEN :
+{
+      < FACING: "facing" >
+    | < CANPUT: "canPut" >
+    | < CANPICK: "canPick" >
+    | < CANMOVE: "canMove" >
+    | < CANJUMP: "canJump" >
+    | < NOT: "not" >
+}
+
+TOKEN :
+{
+      < NUM: (<DIGIT>)+ >
+    | < ID: <LETTER> (<LETTER> | <DIGIT> | "_")* >
+    | < #DIGIT: ["0"-"9"] >
+    | < #LETTER: ["a"-"z", "A"-"Z"] >
+}
+
+TOKEN :
+{
+      < COMMENT: "#" (~["\n", "\r"])* >
+    | < NEWLINE: ("\r" | "\n" | "\r\n")+ >
+    | < SPACE: (" " | "\t")+ >
+}
+
+SKIP : { " " | "\t" | "\n" | "\r" }
+SPECIAL_TOKEN : { < COMMENT > }
+
+// ============= REGLAS DE PARSING ====================
+
+void Start() : {}
+{
+    (Instruction())* <EOF>
+}
+
+void Instruction() : {}
+{
+    JumpInstr() |
+    MoveInstr() |
+    TurnInstr() |
+    FaceInstr() |
+    PutInstr() |
+    PickInstr() |
+    GotoInstr() |
+    AssignInstr() |
+    NopInstr() |
+    IfInstr() |
+    WhileInstr() |
+    RepeatInstr() |
+    ProcedureDecl() |
+    ProcedureCall()
+}
+
+void JumpInstr() : { Token t1, t2; }
+{
+    <JUMP> t1=Param()
+    ( <TOTHE> t2=DirectionComponent() { code.add(new Instrucciones("jump", t1.image, "0", t2.image)); }
+    | <INDIR> t2=Orientation() { code.add(new Instrucciones("jump", t1.image, "0", t2.image)); } )
+    <DOT>
+}
+
+void MoveInstr() : { Token t1, t2; }
+{
+    <MOVE> t1=Param()
+    ( <TOTHE> t2=DirectionComponent() { code.add(new Instrucciones("walk", t1.image, "0", t2.image)); }
+    | <INDIR> t2=Orientation() { code.add(new Instrucciones("walk", t1.image, "0", t2.image)); }
+    | { code.add(new Instrucciones("walk", t1.image)); } )
+    <DOT>
+}
+
+void TurnInstr() : { Token dir; }
+{
+    <TURN> <COLON> dir=Direction() { code.add(new Instrucciones("turn", "0", dir.image)); } <DOT>
+}
+
+void FaceInstr() : { Token dir; }
+{
+    <FACE> <COLON> dir=Orientation() { code.add(new Instrucciones("turnto", "0", dir.image)); } <DOT>
+}
+
+void PutInstr() : { Token t1, t2; }
+{
+    <PUT> <COLON> t1=Param() <OFTYPE> t2=Type()
+    { String tipo = t2.image.equalsIgnoreCase("#chips") ? "drop" : "letgo";
+      code.add(new Instrucciones(tipo, t1.image)); } <DOT>
+}
+
+void PickInstr() : { Token t1, t2; }
+{
+    <PICK> <COLON> t1=Param() <OFTYPE> t2=Type()
+    { String tipo = t2.image.equalsIgnoreCase("#chips") ? "get" : "grab";
+      code.add(new Instrucciones(tipo, t1.image)); } <DOT>
+}
+
+void GotoInstr() : { Token t1, t2; }
+{
+    <GOTO> <COLON> t1=Param() <WITH> <COLON> t2=Param()
+    { code.add(new Instrucciones("jump", t1.image, t2.image, "")); } <DOT>
+}
+
+void AssignInstr() : { Token var, val; }
+{
+    var=<ID> <ASSIGN> val=Param()
+    { code.add(new Instrucciones("=", val.image, var.image)); } <DOT>
+}
+
+void NopInstr() : {}
+{
+    <NOP> <DOT> { code.add(new Instrucciones("nop")); }
+}
+
+void IfInstr() : {}
+{
+    <IF> Condition() { code.add(new Instrucciones("if")); }
+    <THEN> Block()
+    <ELSE> Block()
+    { code.add(new Instrucciones("endif")); }
+}
+
+void WhileInstr() : {}
+{
+    <WHILE> Condition() { code.add(new Instrucciones("while")); }
+    <DO> Block()
+    { code.add(new Instrucciones("endwhile")); }
+}
+
+void RepeatInstr() : { Token times; }
+{
+    <FOR> times=Param() { code.add(new Instrucciones("repeat", times.image)); }
+    <REPEAT> Block()
+    { code.add(new Instrucciones("endrepeat")); }
+
+}
+void ProcedureDecl() : { Token name; List<Instrucciones> oldCode = code; code = new ArrayList<>(); List<String> params = new ArrayList<>(); }
+{
+    <DEFPROC> name=<ID> (ProcedureParams(params))? Block()
+    { procedures.put(name.image, code); code = oldCode; Parametros.put(name.image, new ArrayList<>(params)); }
+}
+
+void ProcedureParams(List<String> params) : { Token p; }
+{
+    <PIPE>
+    ( p=<ID> { params.add(p.image); } )+
+    <PIPE>
+}
+
+void ProcedureCall() : { Token name; List<String> args = new ArrayList<>(); Token p; }
+{
+    name=<ID>
+    ( p=Param() { args.add(p.image); } )*
+    <DOT>
+    {
+        List<Instrucciones> cuerpo = procedures.get(name.image);
+        if (cuerpo != null) {
+            for (Instrucciones inst : cuerpo) {
+                Instrucciones copia = new Instrucciones(inst.tipo, inst.argx, inst.argy, inst.dir);
+                for (int i = 0; i < args.size(); i++) {
+                    if (Parametros.get(name.image).size() > i) {
+                        copia.setAtributos(Parametros.get(name.image).get(i), args.get(i));
+                    }
+                }
+                code.add(copia);
+            }
+        } else {
+            throw new Error("Procedure not defined: " + name.image);
+        }
+    }
+}
+
+void Block() : {}
+{
+    <LBRACK> (Instruction())* <RBRACK>
+}
+
+void Condition() : {}
+{
+    FacingCond() | CanPutCond() | CanPickCond() | CanMoveCond() | CanJumpCond() | NotCond()
+}
+
+void FacingCond() : { Token dir; }
+{
+    <FACING> <COLON> dir=Orientation()
+    { code.add(new Instrucciones("facing", "0", dir.image)); }
+}
+
+void CanPutCond() : { Token n, t; }
+{
+    <CANPUT> <COLON> n=Param() <OFTYPE> t=Type()
+    { code.add(new Instrucciones("can", n.image, "0", t.image)); }
+}
+
+void CanPickCond() : { Token n, t; }
+{
+    <CANPICK> <COLON> n=Param() <OFTYPE> t=Type()
+    { code.add(new Instrucciones("can", n.image, "0", t.image)); }
+}
+
+void CanMoveCond() : { Token n, d; }
+{
+    <CANMOVE> <COLON> n=Param() ( <INDIR> d=Orientation() | <TOTHE> d=DirectionComponent() )
+    { code.add(new Instrucciones("can", n.image, "0", d.image)); }
+}
+
+void CanJumpCond() : { Token n, d; }
+{
+    <CANJUMP> <COLON> n=Param() ( <INDIR> d=Orientation() | <TOTHE> d=DirectionComponent() )
+    { code.add(new Instrucciones("can", n.image, "0", d.image)); }
+}
+
+void NotCond() : {}
+{
+    <NOT> <COLON> Condition() { code.add(new Instrucciones("not")); }
+}
+
+Token Param() : { Token t; } { t=<NUM> | <ID> { return t; } }
+Token DirectionComponent() : { Token t; } { t=<DIRECTIONCOMP> { return t; } }
+Token Direction() : { Token t; } { t=<DIRECTION> { return t; } }
+Token Orientation() : { Token t; } { t=<ORIENTATION> { return t; } }
+Token Type() : { Token t; } { t=<TYPE> { return t; } }
 
 
-	//boolean command(uniandes.lym.robot.view.Console sistema) :
-	boolean command(Console sistema):
-	{	
-		
-		int x,y;
-		salida=new String();	
-	}
 
-	
-	{
-		(		  (
-		   <RIGHT> "(" ")" {world.turnRight();salida = "Command: Turnright";}
-		| 	<MOV>  "(" x=num() ")" {world.moveForward(x,false);salida = "Command: Moveforward ";}  
-		| 	<HOP>  "(" x=num() ")" {world.moveForward(x,true);salida = "Command:Jumpforward ";}
-		| 	<GO>  "(" x=num() "," y=num()")" {world.setPostion(x,y);salida = "Command:GO ";}  
-		|  <PUT> "("  put() ")"					  			
-		|  <PICK> "(" get()  ")"	
-	    |  < POP > "(" x=num() ")" {world.popBalloons(x); salida = "Comando:  Pop";}
-		) ";" 
-
-		{
-		    try {
-	    			 Thread.sleep(900);
-	    	    } catch (InterruptedException e) {
-	    			        System.err.format("IOException: %s%n", e);
-	    		    }
-	    			 
-			sistema.printOutput(salida);
-			return true;
-		})+
-
-    	| <EOF> {return false;} 
-	}
-
-	void put() :
-	{
-		int f=1;	
-	}
-	{
-		( <CHIPS>    "," f=num() {world.putChips(f); salida = "Command:  Put Chips"; })
-		|  	  ( <BALLOONS>   "," f=num() {world.putBalloons(f); salida = "Command:  Put Balloons";})	 
-
-	}
-
-	void get() :
-	{
-		int f=1;	
-	}
-	{
-		( <CHIPS>   "," f=num() {world.pickChips(f);salida = "Command:  Pick chips";})
-		|  	  ( <BALLOONS>   "," f=num() {world.grabBalloons(f);salida="Command:  Pick balloons";})	 
-
-	}
-
-	
-	
-
-	/**
-	 * Unsigned decimal number
-	 * @return the corresponding value of the string
-	 * @error  corresponding value is too large
-	 */
-
-	int num() throws Error:
-	{	
-		int total=1;
-	}
-	{
-		<NUM>
-		{
-			try 
-			{
-				total = Integer.parseInt(token.image);
-			} 
-			catch (NumberFormatException ee) 
-			{
-				throw new Error("Number out of bounds: "+token.image+" !!");
-			}
-			return total;
-		}
-	}
 
 	

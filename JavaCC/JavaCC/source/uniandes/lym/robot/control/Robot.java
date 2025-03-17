@@ -3,7 +3,7 @@
 package uniandes.lym.robot.control;
 
 import uniandes.lym.robot.kernel.*;
-import uniandes.lym.robot.view.Console;
+import uniandes.lym.robot.view.C2onsole;
 
 import java.awt.Point;
 import java.io.*;
@@ -39,56 +39,56 @@ public class Robot implements RobotConstants {
         switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
         case RIGHT:{
           jj_consume_token(RIGHT);
-          jj_consume_token(16);
-          jj_consume_token(17);
+          jj_consume_token(44);
+          jj_consume_token(45);
 world.turnRight();salida = "Command: Turnright";
           break;
           }
         case MOV:{
           jj_consume_token(MOV);
-          jj_consume_token(16);
+          jj_consume_token(44);
           x = num();
-          jj_consume_token(17);
+          jj_consume_token(45);
 world.moveForward(x,false);salida = "Command: Moveforward ";
           break;
           }
         case HOP:{
           jj_consume_token(HOP);
-          jj_consume_token(16);
+          jj_consume_token(44);
           x = num();
-          jj_consume_token(17);
+          jj_consume_token(45);
 world.moveForward(x,true);salida = "Command:Jumpforward ";
           break;
           }
         case GO:{
           jj_consume_token(GO);
-          jj_consume_token(16);
+          jj_consume_token(44);
           x = num();
-          jj_consume_token(18);
+          jj_consume_token(46);
           y = num();
-          jj_consume_token(17);
+          jj_consume_token(45);
 world.setPostion(x,y);salida = "Command:GO ";
           break;
           }
         case PUT:{
           jj_consume_token(PUT);
-          jj_consume_token(16);
+          jj_consume_token(44);
           put();
-          jj_consume_token(17);
+          jj_consume_token(45);
           break;
           }
         case PICK:{
           jj_consume_token(PICK);
-          jj_consume_token(16);
+          jj_consume_token(44);
           get();
-          jj_consume_token(17);
+          jj_consume_token(45);
           break;
           }
         case POP:{
           jj_consume_token(POP);
-          jj_consume_token(16);
+          jj_consume_token(44);
           x = num();
-          jj_consume_token(17);
+          jj_consume_token(45);
 world.popBalloons(x); salida = "Comando:  Pop";
           break;
           }
@@ -97,7 +97,7 @@ world.popBalloons(x); salida = "Comando:  Pop";
           jj_consume_token(-1);
           throw new ParseException();
         }
-        jj_consume_token(19);
+        jj_consume_token(47);
 try {
                                  Thread.sleep(900);
                     } catch (InterruptedException e) {
@@ -141,14 +141,14 @@ try {
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case CHIPS:{
       jj_consume_token(CHIPS);
-      jj_consume_token(18);
+      jj_consume_token(46);
       f = num();
 world.putChips(f); salida = "Command:  Put Chips";
       break;
       }
     case BALLOONS:{
       jj_consume_token(BALLOONS);
-      jj_consume_token(18);
+      jj_consume_token(46);
       f = num();
 world.putBalloons(f); salida = "Command:  Put Balloons";
       break;
@@ -164,14 +164,14 @@ world.putBalloons(f); salida = "Command:  Put Balloons";
     switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
     case CHIPS:{
       jj_consume_token(CHIPS);
-      jj_consume_token(18);
+      jj_consume_token(46);
       f = num();
 world.pickChips(f);salida = "Command:  Pick chips";
       break;
       }
     case BALLOONS:{
       jj_consume_token(BALLOONS);
-      jj_consume_token(18);
+      jj_consume_token(46);
       f = num();
 world.grabBalloons(f);salida="Command:  Pick balloons";
       break;
@@ -214,11 +214,16 @@ try
   private int jj_gen;
   final private int[] jj_la1 = new int[5];
   static private int[] jj_la1_0;
+  static private int[] jj_la1_1;
   static {
 	   jj_la1_init_0();
+	   jj_la1_init_1();
 	}
 	private static void jj_la1_init_0() {
-	   jj_la1_0 = new int[] {0xfe0,0xfe0,0xfe1,0x3000,0x3000,};
+	   jj_la1_0 = new int[] {0x0,0x0,0x1,0x0,0x0,};
+	}
+	private static void jj_la1_init_1() {
+	   jj_la1_1 = new int[] {0xfe,0xfe,0xfe,0x300,0x300,};
 	}
 
   /** Constructor with InputStream. */
@@ -343,7 +348,7 @@ try
   /** Generate ParseException. */
   public ParseException generateParseException() {
 	 jj_expentries.clear();
-	 boolean[] la1tokens = new boolean[20];
+	 boolean[] la1tokens = new boolean[48];
 	 if (jj_kind >= 0) {
 	   la1tokens[jj_kind] = true;
 	   jj_kind = -1;
@@ -354,10 +359,13 @@ try
 		   if ((jj_la1_0[i] & (1<<j)) != 0) {
 			 la1tokens[j] = true;
 		   }
+		   if ((jj_la1_1[i] & (1<<j)) != 0) {
+			 la1tokens[32+j] = true;
+		   }
 		 }
 	   }
 	 }
-	 for (int i = 0; i < 20; i++) {
+	 for (int i = 0; i < 48; i++) {
 	   if (la1tokens[i]) {
 		 jj_expentry = new int[1];
 		 jj_expentry[0] = i;
