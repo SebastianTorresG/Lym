@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="Java CC/JavaCC/source"/>
+	<classpathentry kind="src" path="P0/robotObstacles/source"/>
+	<classpathentry kind="output" path="Java CC/JavaCC/bin"/>
+</classpath>
