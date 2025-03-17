@@ -31,12 +31,19 @@ import java.awt.Point;
 import java.io.*;
 import java.util.Vector;
 import java.util.LinkedList;
+import java.util.*;
+import java.util.Arrays;
 
 @SuppressWarnings("serial")
 public class Robot 
 {
+  	
 
-
+	public static final int NORTH = 0;
+	public static final int SOUTH = 1;
+	public static final int EAST = 2;
+	public static final int WEST = 3;
+	
 	private RobotWorldDec world;
 	
 	
@@ -45,6 +52,37 @@ public class Robot
 	}
 
 	String salida=new String();
+	Map<String, ArrayList<String>> Parametros = new HashMap<>();
+	
+	//Guarda todas las variables creadas
+	Map<String, Integer> Variables = new HashMap<>();
+
+	//Guarda todas los proceduress creadas por el usuario
+    Map<String, List<Instrucciones>> procedures = new HashMap<>();
+    
+	// Guardar el codigo que se va a ejecutar
+    ArrayList <Instrucciones> code = new ArrayList <Instrucciones> () ;
+
+
+    //revisar que la variable este bien definida
+    public int revisarVar(String variable) {
+	  int var;
+	  if (Variables.containsKey(variable)) {
+	    var = Variables.get(variable);
+	    }
+	    
+	  else { 
+		  try {
+		    var = Integer.parseInt(variable);
+		    }
+		  catch (NumberFormatException ee) 
+			{throw new Error("\nThe value: "+variable+" needs to be a Inetger");}
+	  }
+	  return var;
+	}
+	
+
+	
 }
 PARSER_END(Robot)
 
@@ -108,7 +146,7 @@ TOKEN: /* Nombres de Comandos */
 
 TOKEN:
 {
-		<BALLOONS:  "BALLOONS" >
+			<BALLOONS:  "BALLOONS" >
 		|	<CHIPS:     "CHIPS"  >	
 
 }
@@ -117,8 +155,10 @@ TOKEN:
 
 TOKEN :
 {
-		<NUM: (<DIGIT>)+ >
+			<NUM: (<DIGIT>)+ >
 		|  	<#DIGIT: ["0"-"9"] >
+		| < NAME: ( <LETTER> ( <LETTER > | < NUM > )* ) >
+        | < #LETTER: ["A"-"Z"] >
         
 }
 
