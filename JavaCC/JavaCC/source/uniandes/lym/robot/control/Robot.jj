@@ -64,7 +64,15 @@ TOKEN: /* Nombres de Comandos */
 		// Comandos simples
         | < JUMP: "jump">
   		| < TURN: "turn" >
+  		| < GOTO: "goto" >
   		| < NOP: "nop" >
+  		| < FACE: "face" >
+  		| < WITH: "with" >
+  		| < OFTYPE: "ofType" >
+  		| < TOTHE: "toThe" >
+  		| < INDIR: "inDir" >
+  		
+  		
   		//Direcciones
   		| < CARDINALDIR: "north" | "south" | "west" | "east" >
         | < DIRECTION: "right" | "left"|"around" >
@@ -74,8 +82,19 @@ TOKEN: /* Nombres de Comandos */
   		| < ELSE: "else" >
   		| < WHILE: "while" >
   		| < REPEAT: "repeat" >
-  		| < TIMES: "times" >
   		| < EQUALS: ":=">
+  		| < FOR: "for" >
+  		| < DO: "do" >
+  		| < THEN: "then" >
+		//Condiciones
+		| < FACING: "facing" >
+		| < CANPUT: "canPut" >
+		| < CANPICK: "canPick" >
+		| < CANMOVE: "canMove" >
+		| < CANJUMMP: "canJump" >
+		| < NOT: "not" >
+		
+  		
   		//Comandos Viejos
 		| <MOV:  "Mov">
 		| 	<RIGHT: "RIGHT">
