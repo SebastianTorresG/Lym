@@ -116,4 +116,4 @@ def check_syntax(filename):
     return result
 
 
-check_syntax(file)
+
