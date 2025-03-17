@@ -80,6 +80,219 @@ public class Robot
 	  }
 	  return var;
 	}
+
+//----------------------------------------------------------------------------------------
+
+
+private class Instrucciones {
+
+String tipo;
+
+String argx = "0";
+String argy = "0";
+String dir = "";
+
+public Instrucciones(String tipo) {
+  this.tipo = tipo;
+  }
+  
+public Instrucciones(String tipo, String argx) {
+  this.tipo = tipo;
+  this.argx = argx;
+  }
+
+public Instrucciones(String tipo, String argx, String dir) {
+  this.tipo = tipo;
+  this.argx = argx;
+  this.dir = dir.toLowerCase();
+  }
+  
+
+public Instrucciones(String tipo, String argx, String argy, String dir) {
+  this.tipo = tipo;
+  this.argx = argx;
+  this.argy = argy;
+  this.dir = dir;
+  }
+
+public String getTipo() {
+	return tipo;
+  }
+
+public void setAtributos(String viejo, String nuevo) {
+	if (argx.equals(viejo)) { this.argx = nuevo;} 
+	else if (argy.equals(viejo)) { this.argy = nuevo;} 
+	else if (dir.equals(viejo)) { this.dir = nuevo;} 
+  }
+  
+public void execute() throws Error {
+  int x = revisarVar(argx);
+  int y = revisarVar(argy);
+  int facing = world.getFacing();
+  int[] ind;
+  switch (tipo) {
+    
+  	case "jump":   world.setPostion(x, y) ; break;
+  	case "walk":   direction(); world.moveForward(x, false); if (argy.equals("-1")) {look(facing);} break;
+	case "leap":  direction(); world.moveForward(x, true);  if (argy.equals("-1")) {look(facing);} break;
+	case "turn":   direction() ; break;
+	case "turnto":   direction(); break;
+	case "drop":  world.putChips(x); break;
+	case "get":  world.pickChips(x); break;
+	case "grab":   world.grabBalloons(x); break;
+	case "letgo":    world.putBalloons(x); break;
+	case "=": Variables.put(dir, x); break;
+	case "while": ind = indices("while", "endwhile"); whiles(code.subList(ind[0], ind[1]+1)); break;
+	case "if": ind = indices("if", "endif"); ifs(code.subList(ind[0], ind[1]+1)); break;
+	case "repeat": ind = indices("repeat", "endrepeat"); repeats(code.subList(ind[0], ind[1]+1)); break;
+
+}
+}
+
+private void direction() throws Error {
+switch (dir) {
+
+	case "right": world.turnRight(); argy = "-1"; break;
+	case "left": world.turnRight(); world.turnRight(); world.turnRight(); argy = "-1"; break;
+	case "around":
+	case "back": world.turnRight(); world.turnRight(); argy = "-1"; break;
+	case "north": look(NORTH); break;
+	case "south": look(SOUTH); break;
+	case "west": look(WEST); break;
+	case "east": look(EAST); break;
+  }
+
+}
+
+private void look(int direccion) {
+	int facing = world.getFacing();
+
+	while (facing != direccion) {
+		world.turnRight();
+		facing = world.getFacing();
+	  }
+  }
+
+
+
+
+public boolean condicionales() {
+	int i = encontrar();
+	boolean resp = false;
+	switch (tipo) {
+		case "facing": int facing = world.getFacing(); if (facing == orientacion()) { resp = true;} else { resp = false;} break;
+		case "can": resp = can(code.get(i++).getTipo());  break;
+		case "not": resp = !code.get(i++).condicionales(); break;
+	  }
+	return resp;
+}
+
+private int orientacion() {
+	int resp = -1;
+	switch(dir) {
+	  	case "north": resp = NORTH; break;
+		case "south": resp = SOUTH; break;
+		case "west": resp = WEST; break;
+		case "east": resp = EAST; break;
+	  }
+	return resp;
+  }
+
+
+public void whiles(List<Instrucciones> lista) { 
+	int i = 0;
+	
+  	while (!lista.get(i).getTipo().equals("condicional")) { i++;}
+  	int j = i + 1;
+	while (lista.get(0).condicionales()) {
+		while (!lista.get(j).getTipo().equals("endwhile")) {
+		    lista.get(j).execute();
+		    j++;
+		  }
+		j = i+1;
+	  }
+	lista.subList(0, j+1).clear();
+  }
+
+public void ifs(List<Instrucciones> lista) {
+	int i = 0;
+	while (!lista.get(i).getTipo().equals("condicional")) { i++;}
+	if (lista.get(0).condicionales()) {
+	  while (!lista.get(i).getTipo().equals("else")) {
+		    lista.get(i).execute();
+		    i++;
+		  }
+	  while (!lista.get(i).getTipo().equals("endif")) { i++;}
+	}
+	else {
+		while (!lista.get(i).getTipo().equals("else")) { i++;}
+		while (!lista.get(i).getTipo().equals("endif")) {
+	    lista.get(i).execute();
+	    i++;
+	  }
+	  }
+	  lista.subList(0, i+1).clear();
+  }
+
+public void repeats(List<Instrucciones> lista) {
+	int i = 0;
+	for (int j = 0;j < revisarVar(argx); j++ ) { 
+	while (!lista.get(i).getTipo().equals("endrepeat")) {
+		    lista.get(i).execute();
+		    i++;
+		  } }
+		  lista.subList(0, i+1).clear();
+	}
+
+
+ public int[] indices(String inicio, String finals) {
+    int [] resp = {0, 0};
+	while (code.get(resp[0]) == this) { resp[0] ++; }
+	int cont = 0;
+
+    for (resp[1] = resp[0] + 1; resp[1] < code.size(); resp[1]++) {
+        String j = code.get(resp[1]).getTipo();
+        if (j.equals(inicio)) {
+            cont++;
+        } else if (j.equals(finals)) {
+            if (cont == 0) {
+                break;
+            }
+            cont--;
+        }
+    }
+    return resp;
+	  
+   }
+
+   public int encontrar() {
+	int resp = 0;
+	while (code.get(resp) == this) { resp++; }
+	return resp; }
+  
+public boolean can(String t) {
+boolean resp = false;
+int x = revisarVar(argx);
+int y = revisarVar(argy);
+Point p = world.getPosition();
+switch(t) {
+	case "jump": resp = world.isBlocked(new Point(x, y)) ; break;
+  	case "walk":  resp = world.blockedInRange((int) p.getX(), (int) p.getY(), x, orientacion()); break;  
+	case "leap":  resp = world.blockedInRange((int) p.getX(), (int) p.getY(), x, orientacion()); break; 
+	case "turn":   resp = true ; break;
+	case "turnto":   resp = true; break;
+	case "drop":  resp = x <= world.getMyChips(); break;
+	case "get":  resp = world.chipExists() && x <= world.chipsToPick(); break;
+	case "grab":   resp = x <= world.countBalloons(); break;
+	case "letgo":    resp = x <= world.getMyBalloons(); break;
+  }
+  System.out.println(resp);
+return resp;
+  }
+
+}
+
+
 	
 
 	
