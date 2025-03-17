@@ -25,7 +25,7 @@ PARSER_BEGIN(Robot)
 package uniandes.lym.robot.control;
 
 import uniandes.lym.robot.kernel.*;
-import uniandes.lym.robot.view.Console;
+import uniandes.lym.robot.view.C2onsole;
  
 import java.awt.Point;
 import java.io.*;
@@ -58,8 +58,26 @@ SKIP:
 
 TOKEN: /* Nombres de Comandos */
 {
-
-			<MOV:  "Mov">
+  		//DEFINICIONES
+			< DEFVAR: "defVar" >
+        | < DEFPROC: "defProc" >
+		// Comandos simples
+        | < JUMP: "jump">
+  		| < TURN: "turn" >
+  		| < NOP: "nop" >
+  		//Direcciones
+  		| < CARDINALDIR: "north" | "south" | "west" | "east" >
+        | < DIRECTION: "right" | "left"|"around" >
+        | < DIRECTIONCOMP: "right" | "left"|"front" | "back" >
+        // Estructuras
+  		| < IF: "if" >
+  		| < ELSE: "else" >
+  		| < WHILE: "while" >
+  		| < REPEAT: "repeat" >
+  		| < TIMES: "times" >
+  		| < EQUALS: ":=">
+  		//Comandos Viejos
+		| <MOV:  "Mov">
 		| 	<RIGHT: "RIGHT">
 		| 	<PUT: "Put">
 		| 	<PICK: "Pick">
